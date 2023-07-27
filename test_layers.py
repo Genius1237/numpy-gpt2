@@ -14,7 +14,7 @@ def get_models():
 
     return hf_model, gpt2model
 
-def test_out():
+def test_lmhead():
     hf_model, gpt2model = get_models()
 
     batch_size = 32
@@ -24,7 +24,18 @@ def test_out():
     last_hidden_states = model_out.hidden_states[-1].detach().numpy()
     pt_out = model_out.logits.detach().numpy()
 
-    np_out = gpt2model.out(last_hidden_states)
+    np_out = gpt2model.lm_head(last_hidden_states)
+    assert np.allclose(np_out, pt_out)
+
+def test_lmhead_random_inputs():
+    hf_model, gpt2model = get_models()
+
+    batch_size = 32
+    max_len = 64
+    
+    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
+    pt_out = hf_model.lm_head(random_input).detach().numpy()
+    np_out = gpt2model.lm_head(random_input.numpy())
     assert np.allclose(np_out, pt_out)
 
 def test_gelu():
@@ -34,20 +45,32 @@ def test_gelu():
 
     assert np.allclose(np_out, pt_out)
 
+def test_linear():
+    hf_model, gpt2model = get_models()
+
+    batch_size = 32
+    max_len = 64
+    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
+    hf_model.eval()
+    with torch.no_grad():
+        pt_out = hf_model.transformer.h[0].mlp.c_fc(random_input).detach().numpy()
+
+    np_out = gpt2model.h[0].mlp.c_fc(random_input.numpy())
+    # np_out = hf_model.transformer.h[0].mlp(random_input).detach().numpy()
+    assert np.allclose(np_out, pt_out, rtol=1e-1)
+
 def test_mlp():
     hf_model, gpt2model = get_models()
 
     batch_size = 32
     max_len = 64
     random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
+    # random_input = torch.load("random_input.pt")
     pt_out = hf_model.transformer.h[0].mlp(random_input).detach().numpy()
 
     np_out = gpt2model.h[0].mlp(random_input.numpy())
-    print(np_out.dtype, pt_out.dtype)
     assert np.allclose(np_out, pt_out)
-    # assert (linear.weight == params[prefix + "weight"]).all()
-    # assert (linear.bias == params[prefix + "bias"]).all()
 
 
 if __name__ == "__main__":
-    test_out()
+    test_linear()
