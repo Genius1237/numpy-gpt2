@@ -71,6 +71,12 @@ def test_gpt2model_init_weights():
         assert (gpt2layer.mlp.c_fc.bias == params[prefix + "h." + str(i) + "." + "mlp.c_fc.bias"]).all()
         assert (gpt2layer.mlp.c_proj.weight == params[prefix + "h." + str(i) + "." + "mlp.c_proj.weight"]).all()
         assert (gpt2layer.mlp.c_proj.bias == params[prefix + "h." + str(i) + "." + "mlp.c_proj.bias"]).all()
+    
+    assert (gpt2model.ln_f.weight == params[prefix + "ln_f.weight"]).all()
+    assert (gpt2model.ln_f.bias == params[prefix + "ln_f.bias"]).all()
+    assert (gpt2model.lm_head.weight == params[prefix + "wte.weight"].T).all()
+    assert (gpt2model.wte.weight == params[prefix + "wte.weight"]).all()
+    assert (gpt2model.wpe.weight == params[prefix + "wpe.weight"]).all()
 
 if __name__ == "__main__":
     test_gpt2model_init_weights()
