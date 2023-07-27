@@ -123,8 +123,8 @@ class Linear(Base):
         self.n_out = n_out
         self.bias_present = bias_present
 
-        self.weight = np.ndarray((n_in, n_out), dtype=float)
-        self.bias = np.ndarray((n_out), dtype=float) if self.bias_present else None
+        self.weight = np.ndarray((n_in, n_out), dtype=np.float32)
+        self.bias = np.ndarray((n_out), dtype=np.float32) if self.bias_present else None
     
     def __call__(self, inp):
         inp = np.matmul(inp, self.weight)
@@ -136,9 +136,9 @@ class LayerNorm(Base):
     def __init__(self, hidden_size):
         self.hidden_size = hidden_size
 
-        self.weight = np.ndarray((self.hidden_size), dtype=float)
-        self.bias = np.ndarray((self.hidden_size), dtype=float)
-    
+        self.weight = np.ndarray((self.hidden_size), dtype=np.float32)
+        self.bias = np.ndarray((self.hidden_size), dtype=np.float32)
+
     def __call__(self, inp):
         mean = np.mean(inp, axis=-1)
         std = np.std(inp, axis=-1)
@@ -156,7 +156,7 @@ class Embedding(Base):
         self.vocab_size = vocab_size
         self.n_embd = n_embd
 
-        self.weight = np.ndarray((vocab_size, n_embd), dtype=float)
+        self.weight = np.ndarray((vocab_size, n_embd), dtype=np.float32)
     
     def __call__(self, inp):
         return self.weight[inp]
