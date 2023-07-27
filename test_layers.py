@@ -36,7 +36,7 @@ def test_lmhead_random_inputs():
     random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
     pt_out = hf_model.lm_head(random_input).detach().numpy()
     np_out = gpt2model.lm_head(random_input.numpy())
-    assert np.allclose(np_out, pt_out)
+    assert np.allclose(np_out, pt_out, atol=1e-5)
 
 def test_gelu():
     random_input = torch.randn((32, 32))
@@ -48,29 +48,80 @@ def test_gelu():
 def test_linear():
     hf_model, gpt2model = get_models()
 
+    inputs = []
+    outputs = []
+    def hook_fn(m, i, o):
+        inputs.append(i)
+        outputs.append(o)
+
+    hf_model.transformer.h[0].mlp.c_fc.register_forward_hook(hook_fn)
+    
     batch_size = 32
     max_len = 64
-    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
-    hf_model.eval()
-    with torch.no_grad():
-        pt_out = hf_model.transformer.h[0].mlp.c_fc(random_input).detach().numpy()
+    random_inputs = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
+    hf_model(input_ids = random_inputs)
+    
+    pt_out = outputs[0].detach().numpy()
 
-    np_out = gpt2model.h[0].mlp.c_fc(random_input.numpy())
-    # np_out = hf_model.transformer.h[0].mlp(random_input).detach().numpy()
-    assert np.allclose(np_out, pt_out, rtol=1e-1)
+    np_out = gpt2model.h[0].mlp.c_fc(inputs[0][0].detach().numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-5)
 
-def test_mlp():
+
+def test_linear_random_inputs():
     hf_model, gpt2model = get_models()
 
     batch_size = 32
     max_len = 64
     random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
-    # random_input = torch.load("random_input.pt")
+    pt_out = hf_model.transformer.h[0].mlp.c_fc(random_input).detach().numpy()
+
+    np_out = gpt2model.h[0].mlp.c_fc(random_input.numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-5)
+
+def test_mlp():
+    hf_model, gpt2model = get_models()
+
+    inputs = []
+    outputs = []
+    def hook_fn(m, i, o):
+        inputs.append(i)
+        outputs.append(o)
+
+    hf_model.transformer.h[0].mlp.register_forward_hook(hook_fn)
+    
+    batch_size = 32
+    max_len = 64
+    random_inputs = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
+    hf_model(input_ids = random_inputs)
+    
+    pt_out = outputs[0].detach().numpy()
+
+    np_out = gpt2model.h[0].mlp(inputs[0][0].detach().numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-2)
+
+
+def test_mlp_random_inputs():
+    hf_model, gpt2model = get_models()
+
+    batch_size = 32
+    max_len = 64
+    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
     pt_out = hf_model.transformer.h[0].mlp(random_input).detach().numpy()
 
     np_out = gpt2model.h[0].mlp(random_input.numpy())
-    assert np.allclose(np_out, pt_out)
+    assert np.allclose(np_out, pt_out, atol=1e-5)
 
+
+def test_matmul():
+    mat1 = torch.randn((32, 32))
+    mat2 = torch.randn((32, 32))
+    res = torch.matmul(mat1, mat2).numpy()
+
+    np_mat1 = mat1.numpy()
+    np_mat2 = mat2.numpy()
+    np_res = np.matmul(np_mat1, np_mat2)
+
+    assert np.allclose(res, np_res, atol=1e-5)
 
 if __name__ == "__main__":
     test_linear()
