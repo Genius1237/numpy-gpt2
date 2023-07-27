@@ -140,8 +140,10 @@ class LayerNorm(Base):
         self.bias = np.ndarray((self.hidden_size), dtype=np.float32)
 
     def __call__(self, inp):
-        mean = np.mean(inp, axis=-1)
-        std = np.std(inp, axis=-1)
+        mean = np.mean(inp, axis=-1, keepdims=True)
+        std = np.std(inp, axis=-1, keepdims=True)
+
+        return (self.weight/std)*(inp - mean) + self.bias
 
 class Attention(Base):
     def __init__(self, n_embd, n_head):

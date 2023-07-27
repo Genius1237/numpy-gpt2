@@ -123,5 +123,16 @@ def test_matmul():
 
     assert np.allclose(res, np_res, atol=1e-5)
 
+def test_layernorm():
+    hf_model, gpt2model = get_models()
+
+    batch_size = 32
+    max_len = 64
+    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
+    pt_out = hf_model.transformer.h[0].ln_1(random_input).detach().numpy()
+
+    np_out = gpt2model.h[0].ln_1(random_input.numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-5)
+
 if __name__ == "__main__":
     test_linear()
