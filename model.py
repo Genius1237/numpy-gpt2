@@ -83,7 +83,7 @@ class GPT2Model(Base):
 
         self.h = List([GPT2Layer(config) for _ in range(self.config.n_layer)])
         self.ln_f = LayerNorm(self.config.hidden_size)
-        self.out = Linear(self.config.n_embd, self.config.vocab_size, bias_present=False)
+        self.lm_head = Linear(self.config.n_embd, self.config.vocab_size, bias_present=False)
     
     def __call__(self, input_ids, attention_mask):
         input_embeddings = self.wte(input_ids) + self.wpe(np.tile(np.arange(input_ids.shape[-1]), (input_ids.shape[:-1] + (1, ) )))
@@ -92,7 +92,7 @@ class GPT2Model(Base):
     
     def __init__weights__(self, weights):
         super().__init__weights__(weights)
-        self.out.weight = self.wte.weight.T
+        self.lm_head.weight = self.wte.weight.T
 
 
 class GPT2Layer(Base):
@@ -123,8 +123,8 @@ class Linear(Base):
         self.n_out = n_out
         self.bias_present = bias_present
 
-        self.weight = np.ndarray((n_in, n_out))
-        self.bias = np.ndarray((n_out)) if self.bias_present else None
+        self.weight = np.ndarray((n_in, n_out), dtype=float)
+        self.bias = np.ndarray((n_out), dtype=float) if self.bias_present else None
     
     def __call__(self, inp):
         inp = np.matmul(inp, self.weight)
