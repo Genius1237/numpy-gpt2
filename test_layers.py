@@ -130,9 +130,16 @@ def test_layernorm():
     max_len = 64
     random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
     pt_out = hf_model.transformer.h[0].ln_1(random_input).detach().numpy()
-
     np_out = gpt2model.h[0].ln_1(random_input.numpy())
     assert np.allclose(np_out, pt_out, atol=1e-5)
+
+    pt_out = hf_model.transformer.h[4].ln_2(random_input).detach().numpy()
+    np_out = gpt2model.h[4].ln_2(random_input.numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-5)
+
+    pt_out = hf_model.transformer.ln_f(random_input).detach().numpy()
+    np_out = gpt2model.ln_f(random_input.numpy())
+    assert np.allclose(np_out, pt_out, atol=1e-4)
 
 def test_attention():
     hf_model, gpt2model = get_models()
