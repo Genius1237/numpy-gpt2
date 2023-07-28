@@ -180,11 +180,8 @@ class Attention(Base):
         weights = softmax(matmul, axis=-1)
         # (b, h, l, l)
 
-        # weights =  np.tile(np.expand_dims(np.eye(seq_length), (0, 1)), ((batch_size, self.n_head, 1, 1)))
-        weighted_sum = (np.expand_dims(v, 3).repeat(seq_length, axis=3) * np.expand_dims(weights, 4).repeat(self.n_embd // self.n_head, axis=4)).sum(axis=3)
+        weighted_sum = np.matmul(weights, v)
         # (b, h, l, d)
-
-        # assert np.allclose(v, weighted_sum, atol=1e-5)
 
         concatenated_weighted_sum=weighted_sum.transpose(0,2,1,3).reshape(batch_size, seq_length, -1)
 

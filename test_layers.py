@@ -150,12 +150,10 @@ def test_attention():
     # random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
     # pt_out, pt_attention_weights = (t.detach().numpy() for t in hf_model.transformer.h[0].attn(random_input))
     random_inputs = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
-    # random_inputs = torch.load("random_inputs.pt")
     pt_attention_weights = hf_model(input_ids=random_inputs).attentions[0].detach().numpy()
     pt_out = outputs[0][0].detach().numpy()
 
     np_out, np_attention_weights = gpt2model.h[0].attn(inputs[0][0].detach().numpy())
-    print(pt_attention_weights[0][0], np_attention_weights[0][0])
     assert np.allclose(pt_attention_weights, np_attention_weights, atol=1e-5)
     assert np.allclose(pt_out, np_out, atol=1e-5)
 
