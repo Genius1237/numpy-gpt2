@@ -151,8 +151,45 @@ class Attention(Base):
         self.n_embd = n_embd
         self.n_head = n_head
 
-        self.c_attn = Linear(self.n_embd, 3 * self.n_head)
+        self.c_attn = Linear(self.n_embd, 3 * self.n_embd)
         self.c_proj = Linear(self.n_embd, self.n_embd)
+    
+    def __call__(self, inputs):
+        c_attn = self.c_attn(inputs)
+        batch_size = inputs.shape[0]
+        seq_length = inputs.shape[1]
+
+        causal_mask =  np.tile(np.expand_dims(np.triu(np.ones(seq_length), k=1), (0, 1)), ((batch_size, self.n_head, 1, 1)))
+
+        # c_attn_reshaped = c_attn.reshape(batch_size, seq_length, self.n_head, 3, self.n_embd // self.n_head).transpose(3, 0, 2, 1, 4)
+        # q, k, v  = c_attn_reshaped
+        # c_attn_reshaped = c_attn.reshape(batch_size, seq_length, self.n_head, self.n_embd // self.n_head, 3).transpose(4, 0, 2, 1, 3)
+        # q, k, v = c_attn_reshaped
+        # c_attn_reshaped = c_attn.reshape(batch_size, seq_length, 3, self.n_embd // self.n_head, self.n_head).transpose(2, 0, 4, 1, 3)
+        # q, k, v = c_attn_reshaped
+        c_attn_reshaped = c_attn.reshape(batch_size, seq_length, 3, self.n_head, self.n_embd // self.n_head).transpose(2, 0, 3, 1, 4)
+        q, k, v = c_attn_reshaped
+        # c_attn_reshaped = c_attn.reshape(batch_size, seq_length, self.n_embd // self.n_head, 3, self.n_head).transpose(3, 0, 4, 1, 2)
+        # q, k, v = c_attn_reshaped
+        # c_attn_reshaped = c_attn.reshape(batch_size, seq_length, self.n_embd // self.n_head, self.n_head, 3).transpose(4, 0, 3, 1, 2)
+        # q, k, v = c_attn_reshaped
+        # (b, h, l, d)
+
+        matmul = np.matmul(q, k.transpose(0, 1, 3, 2)) / np.sqrt(self.n_embd // self.n_head)
+        matmul = np.ma.array(matmul, mask=causal_mask).filled(fill_value=-np.inf)
+        weights = softmax(matmul, axis=-1)
+        # (b, h, l, l)
+
+        # weights =  np.tile(np.expand_dims(np.eye(seq_length), (0, 1)), ((batch_size, self.n_head, 1, 1)))
+        weighted_sum = (np.expand_dims(v, 3).repeat(seq_length, axis=3) * np.expand_dims(weights, 4).repeat(self.n_embd // self.n_head, axis=4)).sum(axis=3)
+        # (b, h, l, d)
+
+        # assert np.allclose(v, weighted_sum, atol=1e-5)
+
+        concatenated_weighted_sum=weighted_sum.transpose(0,2,1,3).reshape(batch_size, seq_length, -1)
+
+        return self.c_proj(concatenated_weighted_sum), weights
+
 
 class Embedding(Base):
     def __init__(self, vocab_size, n_embd):
@@ -167,12 +204,13 @@ class Embedding(Base):
 def sigmoid(inp):
     return 1 / (1 + np.exp(-inp))
 
+def softmax(inp, axis=-1):
+    inp = inp - np.max(inp, axis=axis, keepdims=True)
+    inp_exp = np.exp(inp)
+    return inp_exp / np.sum(inp_exp, axis=axis, keepdims=True)
 
 def gelu(inp):
     # return inp * sigmoid(1.702 * inp)
     # return inp * phi(inp)
     # return 0.5 * inp * (1.0 + np.tanh(np.sqrt(2.0/np.pi) * (inp + 0.044715 * inp**3)))
     return 0.5 * inp * (1.0 + erf(inp / np.sqrt(2.0)))
-
-
-
