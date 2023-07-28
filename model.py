@@ -44,6 +44,7 @@ class Base:
                     weights_copy[base_key] = {}
                 weights_copy[base_key]['.'.join(remaining_key)] = value
             else:
+                assert self.__dict__[key].shape == value.shape
                 self.__dict__[key] = value
         return weights_copy
 
