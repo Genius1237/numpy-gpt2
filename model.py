@@ -91,7 +91,7 @@ class GPT2Model(Base):
     def __call__(self, input_ids):
         input_embeddings = self.wte(input_ids) + self.wpe(np.tile(np.arange(input_ids.shape[-1]), (input_ids.shape[:-1] + (1, ) )))
         hidden_states = self.h(input_embeddings)
-        return self.lm_head(hidden_states)
+        return self.lm_head(self.ln_f(hidden_states))
     
     def __init__weights__(self, weights):
         super().__init__weights__(weights)
