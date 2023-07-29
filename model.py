@@ -71,6 +71,8 @@ class List(Base):
 
     def __call__(self, *args):
         for item in self.items:
+            if type(args) != tuple:
+                args = (args,)
             args = item(*args)
         return args
 
@@ -86,10 +88,10 @@ class GPT2Model(Base):
         self.ln_f = LayerNorm(self.config.hidden_size)
         self.lm_head = Linear(self.config.n_embd, self.config.vocab_size, bias_present=False)
     
-    def __call__(self, input_ids, attention_mask):
+    def __call__(self, input_ids):
         input_embeddings = self.wte(input_ids) + self.wpe(np.tile(np.arange(input_ids.shape[-1]), (input_ids.shape[:-1] + (1, ) )))
-        hidden_states = self.h(input_embeddings, attention_mask)
-        return self.ln_f(hidden_states)
+        hidden_states = self.h(input_embeddings)
+        return self.lm_head(hidden_states)
     
     def __init__weights__(self, weights):
         super().__init__weights__(weights)
@@ -104,6 +106,11 @@ class GPT2Layer(Base):
         self.attn = Attention(self.config.n_embd, self.config.n_head)
         self.ln_2 = LayerNorm(self.config.n_embd)
         self.mlp = TransformerMLP(self.config.n_embd, 4 * self.config.n_embd)
+    
+    def __call__(self, inputs):
+        inputs = inputs + self.attn(self.ln_1(inputs))[0]
+        inputs = inputs + self.mlp(self.ln_2(inputs))
+        return inputs
 
 
 class TransformerMLP(Base):

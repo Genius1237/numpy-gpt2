@@ -164,5 +164,49 @@ def test_attention():
     assert np.allclose(pt_attention_weights, np_attention_weights, atol=1e-5)
     assert np.allclose(pt_out, np_out, atol=1e-5)
 
+def test_gpt2layer():
+    hf_model, gpt2model = get_models()
+
+    # inputs = []
+    # outputs = []
+    # def hook_fn(m, i, o):
+    #     inputs.append(i)
+    #     outputs.append(o)
+
+    # hf_model.transformer.h[0].register_forward_hook(hook_fn)
+
+    batch_size = 32
+    max_len = 65
+    random_input = torch.randn((batch_size, max_len, hf_model.config.n_embd))
+    pt_out = hf_model.transformer.h[10](random_input)[0].detach().numpy()
+    # random_inputs = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
+    # hf_model(input_ids=random_inputs)
+    # pt_out = outputs[0][0].detach().numpy()
+    
+    np_out = gpt2model.h[10](random_input.numpy())
+    assert np.allclose(pt_out, np_out, atol=1e-5)
+
+def test_gpt2model():
+    hf_model, gpt2model = get_models()
+
+    # inputs = []
+    # outputs = []
+    # def hook_fn(m, i, o):
+    #     inputs.append(i)
+    #     outputs.append(o)
+
+    # hf_model.transformer.h[0].register_forward_hook(hook_fn)
+
+    batch_size = 32
+    max_len = 65
+    random_input = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
+    pt_out = hf_model(random_input)[0].detach().numpy()
+    # random_inputs = torch.randint(0, hf_model.config.vocab_size, (batch_size,max_len))
+    # hf_model(input_ids=random_inputs)
+    # pt_out = outputs[0][0].detach().numpy()
+    
+    np_out = gpt2model(random_input.numpy())
+    assert np.allclose(pt_out, np_out, atol=1e-5)
+
 if __name__ == "__main__":
-    test_attention()
+    test_gpt2model()
